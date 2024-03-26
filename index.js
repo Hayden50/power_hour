@@ -41,9 +41,10 @@ app.get("/recs", (_, res) => {
 
 app.get("/getrecs", async (req, res) => {
   // Check if parameters exist and set defaults if they don't
-  const artist = req.query.artist;
+  let artist = req.query.artist;
   let genre = req.query.genre;
 
+  if (typeof artist == "string") artist = [artist];
   if (typeof genre == "string") genre = [genre];
 
   if (genre && artist) {
@@ -52,7 +53,9 @@ app.get("/getrecs", async (req, res) => {
     if (!areAllIncluded(genre, genres)) res.send("Genre Not Found");
     else res.send(await getGenreRecs(genre));
   } else if (artist) {
-    res.send("Requesting Artist: Not finished");
+    const artists = await getArtists(artist);
+    console.log(artists);
+    res.send("computed");
   } else {
     res.send("No requests made so no rcecommendations can be created.");
   }
@@ -63,7 +66,27 @@ function areAllIncluded(arr1, arr2) {
   return arr1.map((element) => arr2.includes(element)).every(Boolean);
 }
 
-// Retrieves 100 recommendations based on a list of genres
+// Combines all artists into an array of artist URIs
+function getArtists(names) {
+  const promises = names.map((name) => getArtist(name));
+  return Promise.all(promises);
+}
+
+// Gets a singular artist URI
+function getArtist(name) {
+  return new Promise((resolve, reject) => {
+    spotifyApi.searchArtists(name).then(
+      function (data) {
+        resolve(data.body.artists.items[0].uri);
+      },
+      function (err) {
+        reject(err);
+      },
+    );
+  });
+}
+
+// Retrieves some number of recommendations based on a list of genres
 function getGenreRecs(genre) {
   // Return a promise that resolves when the Spotify API call is completed
   return new Promise((resolve, reject) => {
