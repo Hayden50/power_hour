@@ -19,26 +19,6 @@ app.get("/", (_, res) => {
   res.send("Hello World!");
 });
 
-app.get("/recs", (_, res) => {
-  // Get Recommendations Based on Seeds
-  spotifyApi
-    .getRecommendations({
-      min_energy: 0.4,
-      seed_artists: ["6mfK6Q2tzLMEchAr0e9Uzu", "4DYFVNKZ1uixa6SQTvzQwJ"],
-      min_popularity: 50,
-      limit: 2,
-    })
-    .then(
-      function (data) {
-        let recommendations = data.body;
-        res.send(recommendations);
-      },
-      function (err) {
-        console.log("Something went wrong!", err);
-      },
-    );
-});
-
 app.get("/getrecs", async (req, res) => {
   // Check if parameters exist and set defaults if they don't
   let artist = req.query.artist;
@@ -47,16 +27,12 @@ app.get("/getrecs", async (req, res) => {
   if (typeof artist == "string") artist = [artist];
   if (typeof genre == "string") genre = [genre];
 
-  if (genre && artist) {
-    res.send("Choose between genre or artist");
-  } else if (genre) {
-    if (!areAllIncluded(genre, genres)) res.send("Genre Not Found");
-    else res.send(await getGenreRecs(genre));
-  } else if (artist) {
-    const uris = await getArtists(artist);
-    res.send(await getArtistRecs(uris));
+  if (genre || artist) {
+    let uris = null;
+    if (artist) uris = await getArtists(artist);
+    res.send(await getRecs(genre || [], uris || []));
   } else {
-    res.send("No requests made so no rcecommendations can be created.");
+    res.send("No requests made so no recommendations can be created.");
   }
 });
 
@@ -68,7 +44,7 @@ function areAllIncluded(arr1, arr2) {
 // Combines all artists into an array of artist URIs
 function getArtists(names) {
   const promises = names.map((name) => getArtist(name));
-  return Promise.all(promises);
+  return Promise.all(promises) || [];
 }
 
 // Gets a singular artist URI
@@ -86,47 +62,17 @@ function getArtist(name) {
 }
 
 // Retrieves some number of recommendations based on a list of genres
-function getGenreRecs(genre) {
+function getRecs(genre, uris) {
+  if (!areAllIncluded(genre, genres)) genre = [];
   // Return a promise that resolves when the Spotify API call is completed
   return new Promise((resolve, reject) => {
     spotifyApi
       .getRecommendations({
         min_energy: 0.6,
-        seed_genres: [...genre],
-        min_popularity: 50,
-        limit: 7,
-      })
-      .then(
-        function (data) {
-          let recommendations = data.body;
-
-          const tracksInfo = recommendations.tracks.map((track) => {
-            const artist = track.artists[0].name;
-            const song = track.name;
-            return { artist, song };
-          });
-
-          console.log(tracksInfo);
-          resolve(recommendations);
-        },
-        function (err) {
-          console.log("Something went wrong!", err);
-          reject(err);
-        },
-      );
-  });
-}
-
-// Retrieves some number of recommendations based on a list of genres
-function getArtistRecs(uris) {
-  // Return a promise that resolves when the Spotify API call is completed
-  return new Promise((resolve, reject) => {
-    spotifyApi
-      .getRecommendations({
-        min_energy: 0.6,
-        seed_artists: [...uris],
-        min_popularity: 50,
-        limit: 7,
+        seed_genres: genre ? [...genre] : null,
+        seed_artists: uris ? [...uris] : null,
+        target_popularity: 100,
+        limit: 70,
       })
       .then(
         function (data) {
