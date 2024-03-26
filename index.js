@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 const SpotifyWebApi = require("spotify-web-api-node");
-const genre_module = require("./genre_options");
+const genre_module = require("./utils/genre_options");
 const genres = genre_module.genres;
 
 const PORT = 3000;
