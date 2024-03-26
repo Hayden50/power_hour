@@ -53,9 +53,8 @@ app.get("/getrecs", async (req, res) => {
     if (!areAllIncluded(genre, genres)) res.send("Genre Not Found");
     else res.send(await getGenreRecs(genre));
   } else if (artist) {
-    const artists = await getArtists(artist);
-    console.log(artists);
-    res.send("computed");
+    const uris = await getArtists(artist);
+    res.send(await getArtistRecs(uris));
   } else {
     res.send("No requests made so no rcecommendations can be created.");
   }
@@ -77,7 +76,7 @@ function getArtist(name) {
   return new Promise((resolve, reject) => {
     spotifyApi.searchArtists(name).then(
       function (data) {
-        resolve(data.body.artists.items[0].uri);
+        resolve(data.body.artists.items[0].uri.split(":")[2]);
       },
       function (err) {
         reject(err);
@@ -94,6 +93,38 @@ function getGenreRecs(genre) {
       .getRecommendations({
         min_energy: 0.6,
         seed_genres: [...genre],
+        min_popularity: 50,
+        limit: 7,
+      })
+      .then(
+        function (data) {
+          let recommendations = data.body;
+
+          const tracksInfo = recommendations.tracks.map((track) => {
+            const artist = track.artists[0].name;
+            const song = track.name;
+            return { artist, song };
+          });
+
+          console.log(tracksInfo);
+          resolve(recommendations);
+        },
+        function (err) {
+          console.log("Something went wrong!", err);
+          reject(err);
+        },
+      );
+  });
+}
+
+// Retrieves some number of recommendations based on a list of genres
+function getArtistRecs(uris) {
+  // Return a promise that resolves when the Spotify API call is completed
+  return new Promise((resolve, reject) => {
+    spotifyApi
+      .getRecommendations({
+        min_energy: 0.6,
+        seed_artists: [...uris],
         min_popularity: 50,
         limit: 7,
       })
