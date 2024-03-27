@@ -1,4 +1,5 @@
 const express = require("express");
+const { exec } = require("child_process");
 const app = express();
 const SpotifyWebApi = require("spotify-web-api-node");
 const genre_module = require("./utils/genre_options");
@@ -16,7 +17,11 @@ const spotifyApi = new SpotifyWebApi({
 spotifyApi.setAccessToken(process.env.ACCESS_TOKEN);
 
 app.get("/", (_, res) => {
+  const pythonPath = "./mp4_compiler/hello.py";
   res.send("Hello World!");
+  exec(`python3 ${pythonPath}`, (_, stdout) => {
+    console.log("Python script output:", stdout);
+  });
 });
 
 app.get("/getrecs", async (req, res) => {
@@ -81,7 +86,8 @@ function getRecs(genre, uris) {
           const tracksInfo = recommendations.tracks.map((track) => {
             const artist = track.artists[0].name;
             const song = track.name;
-            return { artist, song };
+            const date = track.album.release_date;
+            return { artist, song, date };
           });
 
           console.log(tracksInfo);
