@@ -1,5 +1,6 @@
 const express = require("express");
 const { exec } = require("child_process");
+var fs = require("fs");
 const app = express();
 const SpotifyWebApi = require("spotify-web-api-node");
 const genre_module = require("./utils/genre_options");
@@ -89,6 +90,12 @@ function getRecs(genre, uris) {
             const date = track.album.release_date;
             return { artist, song, date };
           });
+
+          try {
+            fs.writeFileSync("myOutput.txt", JSON.stringify(tracksInfo));
+          } catch (err) {
+            console.error(err);
+          }
 
           console.log(tracksInfo);
           resolve(recommendations);
