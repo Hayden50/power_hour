@@ -77,7 +77,7 @@ function getRecs(genre, uris) {
         min_energy: 0.6,
         seed_genres: genre ? [...genre] : null,
         seed_artists: uris ? [...uris] : null,
-        target_popularity: 100,
+        min_popularity: 80,
         limit: 70,
       })
       .then(
